@@ -1,0 +1,27 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "AI Voice Orchestrator Backend",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@deepgram/sdk": "^5.0.0",
+    "axios": "^1.15.0",
+    "bullmq": "^5.73.5",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "groq-sdk": "^1.1.2",
+    "ioredis": "^5.10.1",
+    "mongoose": "^9.4.1",
+    "socket.io": "^4.8.3",
+    "twilio": "^5.13.1",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
