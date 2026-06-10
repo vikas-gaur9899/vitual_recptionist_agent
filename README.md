@@ -1,1 +1,0 @@
-# vritual_recptionist-
