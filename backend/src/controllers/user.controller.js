@@ -77,7 +77,6 @@ const getUsers = asyncHandler(async (req, res) => {
 
 /**
  * Update User Details
- * Super Admin/Admin kisi bhi user ki details update kar sakta hai
  */
 const updateUser = asyncHandler(async (req, res) => {
 
@@ -86,7 +85,6 @@ const updateUser = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) throw new ApiError(404, "User not found");
 
-    // Email change ho raha hai toh duplicate check karo
     if (email && email !== user.email) {
         const exists = await User.findOne({ email });
         if (exists) throw new ApiError(400, "Email already in use");
@@ -113,7 +111,6 @@ const updateUser = asyncHandler(async (req, res) => {
 
 /**
  * Reset User Password
- * Super Admin/Admin kisi bhi user ka password set kar sakta hai
  */
 const resetUserPassword = asyncHandler(async (req, res) => {
 
@@ -126,7 +123,7 @@ const resetUserPassword = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) throw new ApiError(404, "User not found");
 
-    user.password = newPassword; // pre-save hook hash karega
+    user.password = newPassword;
     await user.save();
 
     await logActivity({
@@ -278,6 +275,7 @@ const getExecutivePerformance = asyncHandler(async (req, res) => {
 
 /**
  * Executive Leaderboard
+ * notConverted bhi track karta hai
  */
 const getLeaderboard = asyncHandler(async (req, res) => {
 
@@ -289,32 +287,44 @@ const getLeaderboard = asyncHandler(async (req, res) => {
     const leaderboardData = await Promise.all(
         executives.map(async (executive) => {
 
-            const [totalLeads, converted, followUps, complaints, callsHandled] =
-                await Promise.all([
-                    Lead.countDocuments({ assignedTo: executive._id }),
-                    Lead.countDocuments({ assignedTo: executive._id, status: "Converted" }),
-                    Lead.countDocuments({ assignedTo: executive._id, status: "Follow-up" }),
-                    Lead.countDocuments({ assignedTo: executive._id, type: "complaint" }),
-                    Call.countDocuments({ executiveId: executive._id })
-                ]);
+            const [
+                totalLeads,
+                converted,
+                notConverted,
+                followUps,
+                complaints,
+                callsHandled
+            ] = await Promise.all([
+                Lead.countDocuments({ assignedTo: executive._id }),
+                Lead.countDocuments({ assignedTo: executive._id, status: "Converted" }),
+                Lead.countDocuments({ assignedTo: executive._id, status: "Not Converted" }),
+                Lead.countDocuments({ assignedTo: executive._id, status: "Follow-up" }),
+                Lead.countDocuments({ assignedTo: executive._id, type: "complaint" }),
+                Call.countDocuments({ executiveId: executive._id })
+            ]);
 
             const conversionRate = totalLeads > 0
                 ? Math.round((converted / totalLeads) * 100) : 0;
 
             const score =
-                (converted * 10) +
-                (callsHandled * 2) +
+                (converted    * 10) +
+                (callsHandled *  2) +
                 (conversionRate * 3) -
-                (complaints * 5);
+                (notConverted *  3) -
+                (complaints   *  5);
 
             return {
-                _id: executive._id,
-                name: executive.name,
-                email: executive.email,
-                phone: executive.phone,
+                _id:               executive._id,
+                name:              executive.name,
+                email:             executive.email,
+                phone:             executive.phone,
                 availabilityStatus: executive.availabilityStatus,
-                totalLeads, converted, followUps,
-                complaints, callsHandled,
+                totalLeads,
+                converted,
+                notConverted,
+                followUps,
+                complaints,
+                callsHandled,
                 conversionRate,
                 score: Math.max(0, score)
             };

@@ -11,7 +11,7 @@ API.interceptors.request.use((config) => {
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 
-function StatPill({ label, value, color }) {
+function StatPill({ label, value, color, textColor }) {
     return (
         <div style={{
             background: color,
@@ -22,7 +22,7 @@ function StatPill({ label, value, color }) {
             alignItems: "center",
             minWidth: 54
         }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: textColor || "var(--text-primary)" }}>
                 {value}
             </span>
             <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>
@@ -37,33 +37,37 @@ export default function Leaderboard() {
     const [data,    setData]    = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchLeaderboard = () => {
+        setLoading(true);
         API.get("/api/users/leaderboard")
             .then(res => setData(res.data.data || []))
             .catch(() => toast.error("Failed to load leaderboard"))
             .finally(() => setLoading(false));
-    }, []);
+    };
+
+    useEffect(() => { fetchLeaderboard(); }, []);
 
     if (loading) {
-        return (
-            <div className="spinner-wrap">
-                <div className="spinner" />
-            </div>
-        );
+        return <div className="spinner-wrap"><div className="spinner" /></div>;
     }
 
     return (
         <div>
 
-            <div style={{ marginBottom: 24 }}>
-                <h2>Executive Leaderboard</h2>
-                <p style={{ color: "var(--text-tertiary)", fontSize: 13, marginTop: 4 }}>
-                    Score = Conversions × 10 + Calls × 2 + Conversion Rate × 3 − Complaints × 5
-                </p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+                <div>
+                    <h2>Executive Leaderboard</h2>
+                    <p style={{ color: "var(--text-tertiary)", fontSize: 13, marginTop: 4 }}>
+                        Score = Conversions × 10 + Calls × 2 + Rate × 3 − Not Converted × 3 − Complaints × 5
+                    </p>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={fetchLeaderboard}>
+                    Refresh
+                </button>
             </div>
 
             {data.length === 0 && (
-                <div className="empty">No executives found</div>
+                <div className="empty">No executives found — create executives first</div>
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -80,7 +84,6 @@ export default function Leaderboard() {
                                 : "1px solid var(--border)"
                         }}
                     >
-
                         {/* Rank */}
                         <div style={{
                             fontSize: index < 3 ? 28 : 16,
@@ -110,11 +113,12 @@ export default function Leaderboard() {
 
                         {/* Stats */}
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                            <StatPill label="Leads"      value={exec.totalLeads}      color="var(--blue-light)"   />
-                            <StatPill label="Converted"  value={exec.converted}       color="var(--green-light)"  />
-                            <StatPill label="Calls"      value={exec.callsHandled}    color="var(--purple-light)" />
-                            <StatPill label="Rate"       value={`${exec.conversionRate}%`} color="var(--amber-light)"  />
-                            <StatPill label="Complaints" value={exec.complaints}      color="var(--red-light)"    />
+                            <StatPill label="Leads"         value={exec.totalLeads}           color="var(--blue-light)"   />
+                            <StatPill label="Converted"     value={exec.converted}            color="var(--green-light)"  />
+                            <StatPill label="Not Converted" value={exec.notConverted || 0}    color="var(--red-light)"    />
+                            <StatPill label="Calls"         value={exec.callsHandled}         color="var(--purple-light)" />
+                            <StatPill label="Rate"          value={`${exec.conversionRate}%`} color="var(--amber-light)"  />
+                            <StatPill label="Complaints"    value={exec.complaints}           color="var(--red-light)"    />
                         </div>
 
                         {/* Score */}
@@ -133,9 +137,7 @@ export default function Leaderboard() {
                             }}>
                                 {exec.score}
                             </div>
-                            <div style={{ fontSize: 10, color: "var(--text-tertiary)" }}>
-                                SCORE
-                            </div>
+                            <div style={{ fontSize: 10, color: "var(--text-tertiary)" }}>SCORE</div>
                         </div>
 
                     </div>
