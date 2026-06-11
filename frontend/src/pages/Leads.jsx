@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react";
-import { getLeadsApi, updateLeadApi } from "../api/leads.api";
+import { getLeadsApi } from "../api/leads.api";
 import Badge from "../components/ui/Badge";
+import UpdateLeadModal from "../modals/UpdateLeadModal";
 import toast from "react-hot-toast";
 
-const FILTERS  = ["All","Hot","Warm","Cold"];
-const STATUSES = ["New","Contacted","Qualified","Follow-up","Converted","Closed"];
+const FILTERS = ["All", "Hot", "Warm", "Cold"];
 
 function initials(name) {
   return name?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
 }
 
 export default function Leads() {
-  const [leads,   setLeads]   = useState([]);
-  const [filter,  setFilter]  = useState("All");
-  const [search,  setSearch]  = useState("");
-  const [loading, setLoading] = useState(true);
+  const [leads,      setLeads]      = useState([]);
+  const [filter,     setFilter]     = useState("All");
+  const [search,     setSearch]     = useState("");
+  const [loading,    setLoading]    = useState(true);
+  const [updateLead, setUpdateLead] = useState(null); // modal ke liye
 
   const fetchLeads = () => {
     setLoading(true);
@@ -34,19 +35,10 @@ export default function Leads() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const updateStatus = async (id, status) => {
-    try {
-      await updateLeadApi(id, { status });
-      setLeads(prev => prev.map(l => l._id === id ? { ...l, status } : l));
-      toast.success("Status updated");
-    } catch {
-      toast.error("Update failed");
-    }
-  };
-
   return (
     <div>
 
+      {/* Filters */}
       <div className="filter-row">
         <div className="filter-group">
           {FILTERS.map(f => (
@@ -68,33 +60,35 @@ export default function Leads() {
         />
       </div>
 
+      {/* Table */}
       <div className="table-wrap">
         {loading ? (
           <div className="spinner-wrap"><div className="spinner" /></div>
         ) : (
           <div className="table-scroll">
-            <table style={{ tableLayout: "fixed", minWidth: 1250 }}>
+            <table style={{ tableLayout: "fixed", minWidth: 1300 }}>
 
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Course</th>
-                  <th>City</th>
-                  <th>Mode</th>
-                  <th>Priority</th>
-                  <th>Score</th>
-                  <th>Sentiment</th>
-                  <th>Assigned To</th>
-                  <th>Status</th>
-                  <th>Phone</th>
-                  <th>Date</th>
+                  <th style={{ width: 160 }}>Name</th>
+                  <th style={{ width: 140 }}>Course</th>
+                  <th style={{ width: 100 }}>City</th>
+                  <th style={{ width: 90  }}>Mode</th>
+                  <th style={{ width: 90  }}>Priority</th>
+                  <th style={{ width: 80  }}>Score</th>
+                  <th style={{ width: 90  }}>Sentiment</th>
+                  <th style={{ width: 130 }}>Assigned To</th>
+                  <th style={{ width: 110 }}>Status</th>
+                  <th style={{ width: 110 }}>Phone</th>
+                  <th style={{ width: 90  }}>Date</th>
+                  <th style={{ width: 90  }}>Action</th>
                 </tr>
               </thead>
 
               <tbody>
                 {leads.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="empty">No leads found</td>
+                    <td colSpan={12} className="empty">No leads found</td>
                   </tr>
                 )}
 
@@ -112,7 +106,7 @@ export default function Leads() {
                     </td>
 
                     {/* Course */}
-                    <td className="truncate" title={lead.summary}>
+                    <td className="truncate" title={lead.interest}>
                       {lead.interest || "—"}
                     </td>
 
@@ -131,7 +125,7 @@ export default function Leads() {
                     {/* Sentiment */}
                     <td><Badge label={lead.sentiment || "Neutral"} /></td>
 
-                    {/* Assigned To — executive ka naam */}
+                    {/* Assigned To */}
                     <td>
                       {lead.assignedTo ? (
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -143,34 +137,33 @@ export default function Leads() {
                           </span>
                         </div>
                       ) : (
-                        <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
-                          Unassigned
-                        </span>
+                        <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>Unassigned</span>
                       )}
                     </td>
 
-                    {/* Status */}
+                    {/* Status — sirf badge, no dropdown */}
                     <td>
-                      <select
-                        className="input input-sm"
-                        style={{ width: "100%" }}
-                        value={lead.status}
-                        onChange={e => updateStatus(lead._id, e.target.value)}
-                      >
-                        {STATUSES.map(s => (
-                          <option key={s}>{s}</option>
-                        ))}
-                      </select>
+                      <Badge label={lead.status} />
                     </td>
 
                     {/* Phone */}
-                    <td style={{ color: "var(--text-tertiary)" }}>
+                    <td style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
                       {lead.phoneNumber}
                     </td>
 
                     {/* Date */}
-                    <td style={{ color: "var(--text-tertiary)" }}>
+                    <td style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
                       {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+                    </td>
+
+                    {/* Action — Update button */}
+                    <td>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => setUpdateLead(lead)}
+                      >
+                        Update
+                      </button>
                     </td>
 
                   </tr>
@@ -184,6 +177,19 @@ export default function Leads() {
       <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 10 }}>
         {leads.length} leads
       </p>
+
+      {/* Update Lead Modal */}
+      {updateLead && (
+        <UpdateLeadModal
+          open={!!updateLead}
+          lead={updateLead}
+          onClose={() => setUpdateLead(null)}
+          onSuccess={() => {
+            fetchLeads();
+            setUpdateLead(null);
+          }}
+        />
+      )}
 
     </div>
   );

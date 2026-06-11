@@ -23,15 +23,8 @@ const LeadSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: [
-            // Lead Flow
-            "New", "Assigned", "Contacted", "Interested",
-            "Follow-up", "Qualified", "Converted",
-            "Not Converted", "Not Interested",
-            // Complaint Flow
-            "Open", "In Progress", "Resolved",
-            "Not Resolved", "Escalated",
-            // Final
-            "Closed"
+            "New", "Assigned", "Follow-up", "Converted", "Not Converted",
+            "Open", "In Progress", "Resolved", "Not Resolved", "Closed"
         ],
         default: "New"
     },
@@ -55,27 +48,45 @@ const LeadSchema = new mongoose.Schema({
     assignedBy:  { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     assignedAt:  { type: Date },
 
-    notes:           { type: String },
-    followUpDate:    { type: Date },
-    lastUpdatedBy:   { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    convertedBy:     { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    convertedByRole: { type: String },
+
+    /**
+     * Not Converted reason
+     * Jab executive "Not Converted" mark kare
+     */
+    notConvertedReason: {
+        type: String,
+        enum: [
+            "High Price",
+            "Syllabus Not Matching",
+            "Location Issue",
+            "Timing Not Suitable",
+            "Joined Competitor",
+            "Not Interested Anymore",
+            "No Response",
+            "Other"
+        ]
+    },
+
+    notes:             { type: String },
+    followUpDate:      { type: Date },
+    lastUpdatedBy:     { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     complaintCategory: { type: String },
     resolutionSummary: { type: String },
 
-    /**
-     * Lead Lifecycle Timeline
-     * Har status update yahan record hoga
-     */
     timeline: [{
-        status:       { type: String },
-        summary:      { type: String },
-        callDuration: { type: String },
-        callTime:     { type: Date },
-        updatedBy:    { type: String },
-        updatedByRole:{ type: String },
-        followUpDate: { type: Date },
-        coursePurchased: { type: String },
-        queryResolved:   { type: Boolean },
-        createdAt:    { type: Date, default: Date.now }
+        status:             { type: String },
+        summary:            { type: String },
+        callDuration:       { type: String },
+        callTime:           { type: Date },
+        updatedBy:          { type: String },
+        updatedByRole:      { type: String },
+        followUpDate:       { type: Date },
+        coursePurchased:    { type: String },
+        notConvertedReason: { type: String },
+        queryResolved:      { type: Boolean },
+        createdAt:          { type: Date, default: Date.now }
     }]
 
 }, { timestamps: true });
