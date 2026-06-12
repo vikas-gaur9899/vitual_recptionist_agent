@@ -31,10 +31,11 @@ const app    = express();
 // ── Middleware
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL,
-    "https://vitual-recptionist-agent-258u1xe8s.vercel.app"
+    "http://localhost:5173",
+    "https://vitual-recptionist-agent.vercel.app",
+    "https://vitual-recptionist-agent-m4l96xlbt.vercel.app"
   ],
-  credentials: true,
+  credentials: true
 }));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
