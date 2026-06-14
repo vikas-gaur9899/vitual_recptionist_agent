@@ -36,7 +36,13 @@ app.use(cors({
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+ //  health check 
 
+ app.get("/cors-test", (req, res) => {
+  res.json({
+    origin: req.headers.origin
+  });
+});
 // ── API Routes
 app.use(
     "/api/users",
