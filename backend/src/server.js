@@ -25,40 +25,37 @@ const handleMediaStream = require('./services/stream.handler');
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const app    = express();
 
-// ── CORS — dynamic origin check ✅
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-];
+// ── NUCLEAR CORS FIX — sabse pehle, kuch bhi block na ho ✅
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS,PATCH");
+  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With");
+  if (req.method === "OPTIONS") return res.sendStatus(200);
+  next();
+});
 
+// ── cors package bhi rakho backup ke liye
 app.use(cors({
   origin: function (origin, callback) {
-
-    // Postman / server-to-server (no origin)
     if (!origin) return callback(null, true);
-
-    // Localhost allow
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-
-    // Vercel sab URLs allow — main + preview dono
-    if (
-      origin.endsWith(".vercel.app") ||
-      origin.includes("vitual-recptionist-agent")
-    ) {
-      return callback(null, true);
-    }
-
-    // Baaki sab block
-    console.warn("❌ CORS blocked:", origin);
-    return callback(new Error("Not allowed by CORS"));
+    if (origin.endsWith(".vercel.app")) return callback(null, true);
+    if (origin.includes("localhost")) return callback(null, true);
+    if (origin.includes("railway.app")) return callback(null, true);
+    return callback(null, true); // sab allow
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
 
-// ── Preflight requests handle karo
-app.options("*", cors());
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS,PATCH");
+  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With");
+  res.sendStatus(200);
+});
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
