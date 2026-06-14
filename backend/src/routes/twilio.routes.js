@@ -2,16 +2,24 @@ const express = require('express');
 const router = express.Router();
 const Call = require('../models/Call');
 
-// ── Inbound: greet + open WebSocket stream ──
+// ── Inbound/Outbound: greet + open WebSocket stream ──
 router.post('/inbound', async (req, res) => {
-  const { CallSid, From, To } = req.body;
-  console.log(`📞 New Call: ${CallSid} | From: ${From}`);
+  const { CallSid, From, To, Direction } = req.body;
+
+  // ✅ Twilio outbound calls ka Direction = "outbound-api"
+  const isOutbound = Direction === "outbound-api";
+
+  // ✅ Customer number hamesha "from" mein store hoga, chahe call kaise bhi hui ho
+  const customerNumber = isOutbound ? To   : From;
+  const businessNumber = isOutbound ? From : To;
+
+  console.log(`📞 New Call: ${CallSid} | Customer: ${customerNumber} | Direction: ${Direction}`);
 
   Call.create({
     callSid: CallSid,
-    from: From,
-    to: To,
-    direction: 'inbound',
+    from: customerNumber,                         // ✅ always customer number
+    to: businessNumber,                           // ✅ always twilio/business number
+    direction: isOutbound ? 'outbound-api' : 'inbound', // ✅ proper tag
     status: 'in-progress',
     transcript: []
   }).catch(err => console.error("DB Error:", err));
@@ -22,7 +30,7 @@ router.post('/inbound', async (req, res) => {
   <Connect>
     <Stream url="wss://${process.env.AI_SERVICE_DOMAIN}/media-stream">
       <Parameter name="callSid" value="${CallSid}"/>
-      <Parameter name="from" value="${From}"/>
+      <Parameter name="from" value="${customerNumber}"/>
     </Stream>
   </Connect>
 </Response>`;

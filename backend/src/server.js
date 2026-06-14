@@ -8,14 +8,11 @@ const { WebSocketServer } = require('ws');
 const twilio     = require('twilio');
 
 // Routes
-const usersRoutes = require("./routes/users.routes");
-const courseRoutes = require("./routes/course.routes");
-
-const activityRoutes = require("./routes/activity.routes");
-
-const campaignRoutes = require("./routes/campaign.routes");
-
-const settingsRoutes = require("./routes/settings.routes");
+const usersRoutes     = require("./routes/users.routes");
+const courseRoutes    = require("./routes/course.routes");
+const activityRoutes  = require("./routes/activity.routes");
+const campaignRoutes  = require("./routes/campaign.routes");
+const settingsRoutes  = require("./routes/settings.routes");
 const twilioRoutes    = require('./routes/twilio.routes');
 const authRoutes      = require('./routes/auth.routes');
 const leadsRoutes     = require('./routes/leads.routes');
@@ -28,41 +25,50 @@ const handleMediaStream = require('./services/stream.handler');
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const app    = express();
 
-// ── Middleware
+// ── CORS — dynamic origin check ✅
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://vitual-recptionist-agent.vercel.app",
-    "https://vitual-recptionist-agent-m4l96xlbt.vercel.app"
-  ],
-  credentials: true
+  origin: function (origin, callback) {
+
+    // Postman / server-to-server (no origin)
+    if (!origin) return callback(null, true);
+
+    // Localhost allow
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    // Vercel sab URLs allow — main + preview dono
+    if (
+      origin.endsWith(".vercel.app") ||
+      origin.includes("vitual-recptionist-agent")
+    ) {
+      return callback(null, true);
+    }
+
+    // Baaki sab block
+    console.warn("❌ CORS blocked:", origin);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
+// ── Preflight requests handle karo
+app.options("*", cors());
+
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 // ── API Routes
-app.use(
-    "/api/users",
-    usersRoutes
-);
-
-app.use(
-    "/api/activity",
-    activityRoutes
-);
-
-app.use(
-    "/api/campaigns",
-    campaignRoutes
-);
-app.use(
-    "/api/courses",
-    courseRoutes
-);
-app.use(
-    "/api/settings",
-    settingsRoutes
-);
+app.use("/api/users",     usersRoutes);
+app.use("/api/activity",  activityRoutes);
+app.use("/api/campaigns", campaignRoutes);
+app.use("/api/courses",   courseRoutes);
+app.use("/api/settings",  settingsRoutes);
 app.use('/api/auth',      authRoutes);
 app.use('/api/leads',     leadsRoutes);
 app.use('/api/calls',     callsRoutes);
@@ -76,7 +82,7 @@ app.get('/call-me', async (req, res) => {
       to:   "+919818977845",
       from: process.env.TWILIO_PHONE_NUMBER,
       url:  `https://${process.env.AI_SERVICE_DOMAIN}/voice/inbound`,
-      statusCallback:      `https://${process.env.AI_SERVICE_DOMAIN}/voice/status`,
+      statusCallback:       `https://${process.env.AI_SERVICE_DOMAIN}/voice/status`,
       statusCallbackMethod: 'POST',
       statusCallbackEvent:  ['completed', 'failed']
     });

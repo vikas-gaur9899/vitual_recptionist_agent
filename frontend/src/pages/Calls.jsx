@@ -7,6 +7,13 @@ function duration(s) {
   return `${Math.floor(s / 60)}m ${s % 60}s`;
 }
 
+// ✅ Direction label helper
+function directionLabel(dir) {
+  if (dir === "outbound-api") return "Outbound";
+  if (dir === "inbound")      return "Inbound";
+  return "—";
+}
+
 export default function Calls() {
   const [calls,    setCalls]    = useState([]);
   const [expanded, setExpanded] = useState(null);
@@ -34,6 +41,12 @@ export default function Calls() {
               </div>
             </div>
             <div className="call-badges">
+              {/* ✅ Direction badge */}
+              <span
+                className={`badge ${call.direction === "outbound-api" ? "badge-outbound" : "badge-inbound"}`}
+              >
+                {directionLabel(call.direction)}
+              </span>
               <Badge label={call.status} />
               {call.sentiment && <Badge label={call.sentiment} />}
               {call.leadGenerated && <span className="badge badge-lead">Lead</span>}
